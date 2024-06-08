@@ -5,12 +5,22 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
 func main() {
 	fmt.Println("Starting web server")
-	f, err := os.OpenFile("Resume.pdf", os.O_RDONLY, os.ModeDevice)
+
+	// Config
+	fileName := os.Getenv("RESUME_NAME")
+	port := os.Getenv("PORT")
+	cacheSeconds, err := strconv.Atoi(os.Getenv("CACHE_SECONDS"))
+
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.OpenFile(fileName, os.O_RDONLY, os.ModeDevice)
 	if err != nil {
 		panic(err)
 	}
@@ -24,8 +34,9 @@ func main() {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})
-	cachedHandler := CacheHandler(fileHandler, 3600)
-	err = http.ListenAndServe(":5000", cachedHandler)
+	cachedHandler := CacheHandler(fileHandler, cacheSeconds)
+	addr := fmt.Sprintf(":%s", port)
+	err = http.ListenAndServe(addr, cachedHandler)
 	if err != nil {
 		panic(err)
 	}
